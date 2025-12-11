@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Шпион — Dota 2 Edition</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d1b2a;
+      color: #e0e1dd;
+      text-align: center;
+      padding: 15px;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #1b263b;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 0 25px rgba(26, 94, 130, 0.5);
+    }
+    h1 {
+      color: #4cc9f0;
+      margin-bottom: 15px;
+      font-size: 28px;
+    }
+    h2 {
+      font-size: 18px;
+      color: #a9def9;
+      margin: 15px 0 10px;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      color: #f1faee;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 6px 0;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background: #4361ee;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #3a0ca3;
+    }
+    #roleDisplay {
+      margin: 25px 0;
+      font-size: 24px;
+      min-height: 100px;
+      line-height: 1.4;
+      padding: 15px 20px;
+      background: #2b2d42;
+      border-radius: 10px;
+      transition: opacity 0.4s;
+      cursor: pointer;
+      white-space: pre-wrap;
+    }
+    .hidden {
+      opacity: 0;
+    }
+    .instructions {
+      font-size: 14px;
+      color: #adb5bd;
+      margin-top: 20px;
+    }
+    .footer {
+      margin-top: 25px;
+      font-size: 12px;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🕵️‍♂️ Шпион — Dota 2 Edition</h1>
+
+    <label for="players">👥 Количество игроков:</label>
+    <input type="number" id="players" min="3" max="20" value="6">
+
+    <label for="spies">🕵️ Количество шпионов:</label>
+    <input type="number" id="spies" min="1" max="5" value="1">
+
+    <label for="category">📂 Категория:</label>
+    <select id="category">
+      <option value="heroes">Heroes</option>
+      <option value="items">Items</option>
+      <option value="abilities">Abilities (Hero — Name)</option>
+    </select>
+
+    <button id="startBtn">🎯 Сгенерировать игру</button>
+
+    <div id="roleDisplay">— Нажмите «Сгенерировать игру», затем кликайте сюда —</div>
+
+    <div class="instructions">
+      <p>💡 После генерации: каждый по очереди нажимает на поле → видит свою роль на 2 сек → поле очищается.<br>
+         Следующий игрок — повторяет.</p>
+      <button id="resetBtn" style="background:#e63946;">🔄 Сбросить</button>
+    </div>
+
+    <div class="footer">
+      Героев: 126 | Предметов: 204 | Способностей: 504
+    </div>
+  </div>
+
+  <script>
+    // =============== ДАННЫЕ ===============
+    const heroesList = [
+      "Alchemist", "Axe", "Bristleback", "Centaur Warrunner", "Chaos Knight",
+      "Dawnbreaker", "Doom", "Dragon Knight", "Earth Spirit", "Earthshaker",
+      "Elder Titan", "Huskar", "Kunkka", "Legion Commander", "Lifestealer",
+      "Mars", "Night Stalker", "Ogre Magi", "Omniknight", "Primal Beast",
+      "Pudge", "Slardar", "Spirit Breaker", "Sven", "Tidehunter",
+      "Tiny", "Treant Protector", "Tusk", "Underlord", "Undying",
+      "Wraith King", "Anti-Mage", "Bloodseeker", "Bounty Hunter", "Clinkz",
+      "Drow Ranger", "Ember Spirit", "Faceless Void", "Gyrocopter", "Hoodwink",
+      "Juggernaut", "Luna", "Medusa", "Meepo", "Monkey King",
+      "Morphling", "Naga Siren", "Phantom Assassin", "Phantom Lancer", "Razor",
+      "Riki", "Shadow Fiend", "Sniper", "Spectre", "Templar Assassin",
+      "Terrorblade", "Troll Warlord", "Ursa", "Viper", "Weaver",
+      "Ancient Apparition", "Crystal Maiden", "Death Prophet", "Disruptor", "Enchantress",
+      "Grimstroke", "Jakiro", "Keeper of the Light", "Leshrac", "Lich",
+      "Lina", "Lion", "Muerta", "Nature's Prophet", "Necrophos",
+      "Oracle", "Outworld Destroyer", "Puck", "Pugna", "Queen of Pain",
+      "Rubick", "Shadow Demon", "Shadow Shaman", "Silencer", "Skywrath Mage",
+      "Storm Spirit", "Tinker", "Warlock", "Witch Doctor", "Zeus",
+      "Abaddon", "Bane", "Batrider", "Beastmaster", "Brewmaster",
+      "Broodmother", "Chen", "Clockwerk", "Dark Seer", "Dark Willow",
+      "Dazzle", "Enigma", "Invoker", "Io", "Lone Druid",
+      "Lycan", "Magnus", "Marci", "Mirana", "Nyx Assassin",
+      "Pangolier", "Phoenix", "Sand King", "Snapfire", "Techies",
+      "Timbersaw", "Vengeful Spirit", "Venomancer", "Visage", "Void Spirit",
+      "Windranger", "Winter Wyvern", "Kez"  // ← добавлен
+    ];
+
+    // const itemsList = [
+    //   "Iron Branch", "Gauntlets of Strength", "Slippers of Agility", "Mantle of Intelligence",
+    //   "Circlet", "Oblivion Staff", "Robe of the Magi", "Sobi Mask", "Belt of Strength",
+    //   "Band of Elvenskin", "Cloak", "Ring of Protection", "Magic Stick", "Magic Wand",
+    //   "Healing Salve", "Clarity", "Smoke of Deceit", "Dust of Appearance", "Bottle",
+    //   "Observer Ward", "Sentry Ward", "Faerie Fire", "Tango", "Animal Courier", "Flying Courier",
+    //   "TP Scroll", "Boots of Speed", "Blink Dagger", "Blades of Attack", "Broadsword",
+    //   "Chainmail", "Claymore", "Helm of Iron Will", "Javelin", "Mithril Hammer",
+    //   "Platemail", "Quarterstaff", "Quelling Blade", "Ring of Regen", "Stout Shield",
+    //   "Poor Man's Shield", "Ring of Aquila", "Ring of Basilius", "Urn of Shadows",
+    //   "Bracer", "Wraith Band", "Null Talisman", "Morbid Mask", "Phase Boots",
+    //   "Power Treads", "Arcane Boots", "Tranquil Boots", "Hand of Midas", "Magic Lamp",
+    //   "Echo Sabre", "Aether Lens", "Guardian Greaves", "Mekansm", "Vladmir's Offering",
+    //   "Pipe of Insight", "Drum of Endurance", "Veil of Discord", "Glimmer Cape",
+    //   "Force Staff", "Eul's Scepter of Divinity", "Rod of Atos", "Aghanim's Shard",
+    //   "Aghanim's Blessing", "Gleipnir", "Meteor Hammer", "Spirit Vessel", "Solar Crest",
+    //   "Lotus Orb", "Shiva's Guard", "Bloodstone", "Refresher Orb", "Spherex",
+    //   "Scythe of Vyse", "Sheepstick", "Orchid Malevolence", "Ethereal Blade", "Bloodthorn",
+    //   "Nullifier", "Octarine Core", "Abyssal Blade", "Daedalus", "Butterfly",
+    //   "Monkey King Bar", "Satanic", "Eye of Skadi", "Silver Edge", "Radiance",
+    //   "Manta Style", "Heart of Tarrasque", "Black King Bar", "Lotus Orb", "Assault Cuirass",
+    //   "Vanguard", "Crimson Guard", "Blade Mail", "Ghost Scepter", "Linken's Sphere",
+    //   "Lothar's Edge", "Shadow Blade", "Diffusal Blade", "Heaven's Halberd", "Skull Basher",
+    //   "Desolator", "Mask of Madness", "Armlet of Mordiggian", "Dagon", "Necronomicon",
+    //   "Arcane Blink", "Sange and Yasha", "Yasha and Kaya", "Kaya and Sange", "Sange",
+    //   "Yasha", "Kaya", "Hurricane Pike", "Nullifier", "Wind Waker", "Trickster Cloak",
+    //   "Faded Brooch", "Ironwood Branch", "Vambrace", "Orb of Destruction", "Imp Claw",
+    //   "Philosopher's Stone", "Essence Ring", "Clumsy Net", "Enchanted Quiver", "Special Greaves",
+    //   "Ogre Seal Totem", "Titan Sliver", "Mind Breaker", "Psychic Headband", "Flicker",
+    //   "Pupil's Gift", "Third Eye", "Spell Prism", "Apotheosis Blade", "Repair Kit",
+    //   "Ascetic's Cap", "Tome of Knowledge", "Spiked Dog Collar", "Grove Bow", "Quickening Charm",
+    //   "Philosopher's Stone", "Timeless Relic", "Mirror Shield", "Force Boots", "Broom Handle",
+    //   "Dragon Scale", "Greater Crit", "Elven Tunic", "Mechanical Arm", "Penta-Edged Sword",
+    //   "Wizard's Staff", "Gyroscope", "Vambrace", "Bullwhip", "Orb of Destruction",
+    //   "Divine Rapier", "Refresher Shard", "Aeon Disk", "Kaya", "Sanctuary",
+    //   "Witch Blade", "Trident", "Crimson Guard", "Necronomicon", "Sange and Yasha"
+    // ];
+    const itemsList = [
+  // === Базовые (Basic) ===
+        "Iron Branch",
+        "Faerie Fire",
+        "Clarity",
+        "Healing Salve",
+        "Tango",
+        "Quelling Blade",
+        "Stout Shield",
+        "Gauntlets of Strength",
+        "Slippers of Agility",
+        "Mantle of Intelligence",
+        "Cloak",
+        "Belt of Strength",
+        "Band of Elvenskin",
+        "Robe of the Magi",
+        "Circlet",
+        "Oblivion Staff",
+        "Sobi Mask",
+        "Ring of Protection",
+        "Bottle",
+        "Observer Ward",
+        "Sentry Ward",
+        "Smoke of Deceit",
+        "Dust of Appearance",
+        "Town Portal Scroll",
+        "Animal Courier",
+        "Flying Courier",
+        "Enchanted Mango",
+
+  // === Обувь (Boots) ===
+        "Boots of Speed",
+        "Phase Boots",
+        "Power Treads",
+        "Arcane Boots",
+        "Tranquil Boots",
+        "Boots of Travel",
+        "Boots of Travel 2",
+
+  // === Составные (Composite) ===
+        "Magic Stick",
+        "Magic Wand",
+        "Null Talisman",
+        "Wraith Band",
+        "Bracer",
+        "Urn of Shadows",
+        "Mekansm",
+        "Vladmir's Offering",
+        "Pipe of Insight",
+        "Drum of Endurance",
+        "Veil of Discord",
+        "Glimmer Cape",
+        "Force Staff",
+        "Eul's Scepter of Divinity",
+        "Rod of Atos",
+        "Aether Lens",
+        "Guardian Greaves",
+        "Spirit Vessel",
+        "Solar Crest",
+        "Lotus Orb",
+        "Shiva's Guard",
+        "Bloodstone",
+        "Refresher Orb",
+        "Scythe of Vyse",
+        "Orchid Malevolence",
+        "Ethereal Blade",
+        "Bloodthorn",
+        "Nullifier",
+        "Abyssal Blade",
+        "Daedalus",
+        "Butterfly",
+        "Monkey King Bar",
+        "Satanic",
+        "Eye of Skadi",
+        "Silver Edge",
+        "Radiance",
+        "Manta Style",
+        "Heart of Tarrasque",
+        "Black King Bar",
+        "Assault Cuirass",
+        "Vanguard",
+        "Crimson Guard",
+        "Blade Mail",
+        "Ghost Scepter",
+        "Linken's Sphere",
+        "Lothar's Edge",
+        "Shadow Blade",
+        "Diffusal Blade",
+        "Heaven's Halberd",
+        "Skull Basher",
+        "Desolator",
+        "Mask of Madness",
+        "Armlet of Mordiggian",
+        "Dagon",
+        "Necronomicon",
+        "Sange and Yasha",
+        "Yasha and Kaya",
+        "Kaya and Sange",
+        "Sange",
+        "Yasha",
+        "Kaya",
+        "Hurricane Pike",
+        "Trickster Cloak",
+        "Wind Waker",
+        "Aghanim's Shard",
+        "Aghanim's Blessing",
+        "Blink Dagger",
+        "Shadow Amulet",
+        "Gleipnir",
+        "Meteor Hammer",
+        "Octarine Core",
+
+  // === Временные (Temporary / Unique) ===
+        "Gem of True Sight",
+        "Aegis of the Immortal",
+        "Cheese",
+        "Refresher Shard"
+];
+    // Генерация списка способностей в формате "Hero — Ability"
+    const abilitiesList = [];
+    const heroAbilities = {
+      "Alchemist": ["Acid Spray", "Unstable Concoction", "Corrosive Weaponry", "Chemical Rage"],
+      "Axe": ["Berserker's Call", "Battle Hunger", "Counter Helix", "Culling Blade"],
+      "Bristleback": ["Viscous Nasal Goo", "Quill Spray", "Bristleback", "Warpath"],
+      "Centaur Warrunner": ["Hoof Stomp", "Double Edge", "Retaliate", "Stampede"],
+      "Chaos Knight": ["Chaos Bolt", "Reality Rift", "Chaos Strike", "Phantasm"],
+      "Dawnbreaker": ["Celestial Hammer", "Luminosity", "Solar Guardian", "Starbreaker"],
+      "Doom": ["Devour", "Scorched Earth", "Infernal Blade", "Doom"],
+      "Dragon Knight": ["Breathe Fire", "Dragon Tail", "Wyrm's Wrath", "Elder Dragon Form"],
+      "Earth Spirit": ["Rolling Boulder", "Geomagnetic Grip", "Magnetize", "Stone Remnant", "Boulder Smash"],
+      "Earthshaker": ["Fissure", "Enchant Totem", "Aftershock", "Echo Slam"],
+      "Elder Titan": ["Echo Stomp", "Astral Spirit", "Natural Order", "Earth Splitter"],
+      "Huskar": ["Berserker's Blood", "Inner Fire", "Life Break", "Burning Spear"],
+      "Kunkka": ["Torrent", "Tidebringer", "X Marks the Spot", "Ghost Ship"],
+      "Legion Commander": ["Overwhelming Odds", "Press the Attack", "Moment of Courage", "Duel"],
+      "Lifestealer": ["Rage", "Open Wounds", "Ghoul Frenzy", "Infest"],
+      "Mars": ["Arena of Blood", "Spear of Mars", "Bulwark", "God's Rebuke"],
+      "Night Stalker": ["Void", "Hunter in the Night", "Crippling Fear", "Dark Ascension"],
+      "Ogre Magi": ["Fireblast", "Ignite", "Bloodlust", "Multicast"],
+      "Omniknight": ["Purification", "Repel", "Degen Aura", "Guardian Angel"],
+      "Primal Beast": ["Pulverize", "Onslaught", "Trample", "Uproar"],
+      "Pudge": ["Meat Hook", "Rot", "Meat Shield", "Dismember"],
+      "Slardar": ["Slithereen Crush", "Guardian Sprint", "Bash of the Deep", "Guardian Sprint"],
+      "Spirit Breaker": ["Charge of Darkness", "Empowering Haste", "Greater Bash", "Nether Strike"],
+      "Sven": ["Storm Hammer", "Great Cleave", "Warcry", "God's Strength"],
+      "Tidehunter": ["Gush", "Kraken Shell", "Anchor Smash", "Ravage"],
+      "Tiny": ["Avalanche", "Tree Grab", "Grow", "Toss"],
+      "Treant Protector": ["Leech Seed", "Nature's Guise", "Overgrowth", "Living Armor"],
+      "Tusk": ["Snowball", "Frozen Sigil", "Ice Shards", "Walrus Punch"],
+      "Underlord": ["Fiend's Gate", "Firestorm", "Pit of Malice", "Atrophy Aura"],
+      "Undying": ["Decay", "Flesh Golem", "Tombstone", "Soul Rip"],
+      "Wraith King": ["Wraithfire Blast", "Vampiric Aura", "Bone guard", "Reincarnation", "Mortal Strike"],
+      "Anti-Mage": ["Mana Break", "Blink", "Counterspell", "Mana Void"],
+      "Bloodseeker": ["Bloodrage", "Thirst", "Rupture", "Blood Rite"],
+      "Bounty Hunter": ["Shuriken Toss", "Jinada", "Shadow Walk", "Track"],
+      "Clinkz": ["Strafe", "Searing Arrows", "Wind Walk", "Death Pact"],
+      "Drow Ranger": ["Frost Arrows", "Gust", "Multishot", "Marksmanship"],
+      "Ember Spirit": ["Searing Chains", "Sleight of Fist", "Flame Guard", "Activate Fire Remnant"],
+      "Faceless Void": ["Time Walk", "Backtrack", "Time Lock", "Chronosphere"],
+      "Gyrocopter": ["Rocket Barrage", "Homing Missile", "Flak Cannon", "Call Down"],
+      "Hoodwink": ["Acorn Shot", "Bushwhack", "Deadeye", "Sharpshooter"],
+      "Juggernaut": ["Blade Fury", "Healing Ward", "Blade Dance", "Omnislash"],
+      "Luna": ["Lucent Beam", "Eclipse", "Moon Glaive", "Lunar Blessing"],
+      "Medusa": ["Stone Gaze", "Mana Shield", "Split Shot", "Petrify"],
+      "Meepo": ["Earthbind", "Poof", "Geostrike", "Divided We Stand"],
+      "Monkey King": ["Boundless Strike", "Tree Dance", "Primal Spring", "Wukong's Command"],
+      "Morphling": ["Waveform", "Adaptive Strike", "Morph", "Replicate"],
+      "Naga Siren": ["Mirror Image", "Ensnare", "Rip Tide", "Song of the Siren"],
+      "Phantom Assassin": ["Stifling Dagger", "Phantom Strike", "Blur", "Coup de Grace"],
+      "Phantom Lancer": ["Spirit Lance", "Doppelganger", "Juxtapose", "Phantom Rush"],
+      "Razor": ["Plasma Field", "Static Link", "Unstable Current", "Eye of the Storm"],
+      "Riki": ["Smoke Screen", "Blink Strike", "Tricks of the Trade", "Cloak and Dagger"],
+      "Shadow Fiend": ["Shadowraze", "Feast of Souls", "Presence of the Dark Lord", "Requiem of Souls"],
+      "Sniper": ["Shrapnel", "Headshot", "Take Aim", "Assassinate"],
+      "Spectre": ["Spectral Dagger", "Desolate", "Dispersion", "Haunt"],
+      "Templar Assassin": ["Refraction", "Meld", "Psi Blades", "Psionic Trap"],
+      "Terrorblade": ["Reflection", "Conjure Image", "Metamorphosis", "Sunder"],
+      "Troll Warlord": ["Berserker Rage", "Battle Trance", "Fervor", "Rampage", "Whirling Axes"],
+      "Ursa": ["Earthshock", "Enrage", "Fury Swipes", "Overpower"],
+      "Viper": ["Poison Attack", "Nethertoxin", "Corrosive Skin", "Viper Strike"],
+      "Weaver": ["The Swarm", "Shukuchi", "Geminate Attack", "Time Lapse"],
+      "Ancient Apparition": ["Ice Vortex", "Chilling Touch", "Cold Feet", "Ice Blast"],
+      "Crystal Maiden": ["Crystal Nova", "Frostbite", "Arcane Aura", "Freezing Field"],
+      "Death Prophet": ["Crypt Swarm", "Exorcism", "Silence", "Spirit Siphon"],
+      "Disruptor": ["Thunder Strike", "Glimpse", "Kinetic Field", "Static Storm"],
+      "Enchantress": ["Impetus", "Enchant", "Nature's Attendants", "Untouchable"],
+      "Grimstroke": ["Ink Swell", "Soulbind", "Stroke of Fate", "Phantoms' Embrace"],
+      "Jakiro": ["Ice Path", "Liquid Fire", "Dual Breath", "Macropyre", "Liquid Frost"],
+      "Keeper of the Light": ["Illuminate", "Chakra Magic", "Blinding Light", "Spirit Form", "Solar Bind", "Recall"],
+      "Leshrac": ["Split Earth", "Diabolic Edict", "Lightning Storm", "Pulse Nova"],
+      "Lich": ["Frost Blast", "Frost Shield", "Sinister Gaze", "Chain Frost"],
+      "Lina": ["Dragon Slave", "Light Strike Array", "Fiery Soul", "Laguna Blade"],
+      "Lion": ["Earth Spike", "Mana Drain", "Hex", "Finger of Death"],
+      "Muerta": ["Pierce the Veil", "Gunslinger", "Bullet Time", "Dead Shot"],
+      "Nature's Prophet": ["Sprout", "Teleportation", "Nature's Call", "Wrath of Nature"],
+      "Necrophos": ["Death Pulse", "Ghost Shroud", "Heartstopper Aura", "Reaper's Scythe"],
+      "Oracle": ["Fortunes End", "Fates Edict", "Purifying Flames", "False Promise"],
+      "Outworld Destroyer": ["Arcane Orb", "Astral Imprisonment", "Essence Aura", "Sanity's Eclipse"],
+      "Puck": ["Illusory Orb", "Waning Rift", "Phase Shift", "Dream Coil"],
+      "Pugna": ["Nether Blast", "Decrepify", "Nether Ward", "Life Drain"],
+      "Queen of Pain": ["Shadow Strike", "Blink", "Sonic Wave", "Scream Of Pain"],
+      "Rubick": ["Telekinesis", "Fade Bolt", "Spell Steal", "Arcane Supremacy"],
+      "Shadow Demon": ["Disruption", "Shadow Poison", "Demonic Purge", "Shadow Poison Release"],
+      "Shadow Shaman": ["Ether Shock", "Shackles", "Hex", "Mass Serpent Ward"],
+      "Silencer": ["Arcane Curse", "Glaives of Wisdom", "Last Word", "Global Silence"],
+      "Skywrath Mage": ["Arcane Bolt", "Concussive Shot", "Ancient Seal", "Mystic Flare"],
+      "Storm Spirit": ["Overload", "Ball Lightning", "Static Remnant", "Eye of the Storm"],
+      "Tinker": ["Laser", "Defense Matrix", "March of the Machines", "Rearm"],
+      "Warlock": ["Fatal Bonds", "Shadow Word", "Upheaval", "Chaotic Offering"],
+      "Witch Doctor": ["Paralyzing Cask", "Voodoo Restoration", "Maledict", "Death Ward"],
+      "Zeus": ["Arc Lightning", "Lightning Bolt", "Static Field", "Thundergod's Wrath"],
+      "Abaddon": ["Aphotic Shield", "Curse of Avernus", "Borrowed Time", "Mist Coil"],
+      "Bane": ["Enfeeble", "Brain Sap", "Nightmare", "Fiend's Grip"],
+      "Batrider": ["Flamebreak", "Sticky Napalm", "Firefly", "Flaming Lasso"],
+      "Beastmaster": ["Wild Axes", "Call of the Wild", "Inner Beast", "Primal Roar"],
+      "Brewmaster": ["Thunder Clap", "Drunken Haze", "Drunken Brawler", "Primal Split"],
+      "Broodmother": ["Poison Sting", "Spiders", "Incapacitating Bite", "Spawn Spiderites"],
+      "Chen": ["Penitence", "Test of Faith", "Holy Persuasion", "Hand of God"],
+      "Clockwerk": ["Battery Assault", "Power Cogs", "Rocket Flare", "Hookshot"],
+      "Dark Seer": ["Vacuum", "Ion Shell", "Surge", "Wall of Replica"],
+      "Dark Willow": ["Tar Curse", "Bramble Maze", "Shadow Realm", "Terrorize"],
+      "Dazzle": ["Poison Touch", "Shallow Grave", "Shadow Wave", "Bad Juju"],
+      "Enigma": ["Malefice", "Demonic Conversion", "Midnight Pulse", "Black Hole"],
+      "Invoker": ["Exort","Wex","Quas","Tornado","Ghost Walk","Deafening Blast","Chaos Meteor","Cold Snap","Ice Wall","Forge Spirit","Sun Strike","Invoke"],
+      "Io": ["Tether", "Spirits", "Overcharge", "Relocate"],
+      "Lone Druid": ["Summon Spirit Bear", "Rabid", "Savage Roar", "True Form"],
+      "Lycan": ["Summon Wolves", "Howl", "Feral Impulse", "Shapeshift"],
+      "Magnus": ["Shockwave", "Empower", "Skewer", "Reverse Polarity"],
+      "Marci": ["Dispose", "Rebound", "Bodyguard", "Unleash"],
+      "Mirana": ["Starstorm", "Sacred Arrow", "Leap", "Divergence"],
+      "Nyx Assassin": ["Impale", "Spiked Carapace", "Vendetta", "Mind Flare"],
+      "Pangolier": ["Swashbuckle", "Shield Crash", "Heartpiercer", "Rolling Thunder"],
+      "Phoenix": ["Icarus Dive", "Fire Spirits", "Sun Ray", "Supernova"],
+      "Sand King": ["Burrowstrike", "Sand Storm", "Caustic Finale", "Epicenter"],
+      "Snapfire": ["Lil' Shredder", "Scatterblast", "Firesnap Shot", "Mortimer Kisses"],
+      "Techies": ["Sticky Bomb", "Minefield Sign", "Reactive Tazer", "Blast Off!", "Proximity Mines"],
+      "Timbersaw": ["Whirling Death", "Timber Chain", "Reactive Armor", "Chakram"],
+      "Vengeful Spirit": ["Magic Missile", "Wave of Terror", "Vengeance Aura", "Nether Swap"],
+      "Venomancer": ["Poison Sting", "Plague Ward", "Poison Nova", "Venomous Gale"],
+      "Visage": ["Grave Chill", "Soul Assumption", "Gravekeepers' Cloak", "Summon Familiars"],
+      "Void Spirit": ["Aether Remnant", "Dissipate", "Astral Step", "Void Storm"],
+      "Windranger": ["Shackleshot", "Powershot", "Windrun", "Focus Fire"],
+      "Winter Wyvern": ["Arctic Burn", "Splinter Blast", "Cold Embrace", "Winter's Curse"],
+      // Kez — с правильными способностями!
+      "Kez": ["Echo Slash", "Grappling Claw", "Kazurai Katana", "Raptor Dance"]
+    };
+
+    // Формируем abilitiesList в нужном формате
+    for (const [hero, abilities] of Object.entries(heroAbilities)) {
+      abilities.forEach(ab => {
+        abilitiesList.push(`${hero} — ${ab}`);
+      });
+    }
+
+    const DATA = {
+      heroes: heroesList,
+      items: itemsList,
+      abilities: abilitiesList
+    };
+
+    // =============== ЛОГИКА ===============
+    let roles = [];
+    let currentIndex = 0;
+    let timeoutId = null;
+
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const roleDisplay = document.getElementById('roleDisplay');
+
+    startBtn.addEventListener('click', generateGame);
+    resetBtn.addEventListener('click', resetGame);
+    roleDisplay.addEventListener('click', showNextRole);
+
+    function generateGame() {
+      const totalPlayers = parseInt(document.getElementById('players').value) || 6;
+      const spyCount = parseInt(document.getElementById('spies').value) || 1;
+      const category = document.getElementById('category').value;
+
+      if (spyCount >= totalPlayers || spyCount < 1 || totalPlayers < 3) {
+        alert('⚠️ Некорректные параметры:\n- Игроков: от 3 до 20\n- Шпионов: от 1 до (игроков - 1)');
+        return;
+      }
+
+      const wordList = DATA[category];
+      if (!wordList || wordList.length === 0) {
+        alert('❌ Ошибка: пустая категория.');
+        return;
+      }
+
+      const secretWord = wordList[Math.floor(Math.random() * wordList.length)];
+
+      roles = Array(totalPlayers).fill(secretWord);
+      const spyIndices = new Set();
+      while (spyIndices.size < spyCount) {
+        spyIndices.add(Math.floor(Math.random() * totalPlayers));
+      }
+      spyIndices.forEach(i => roles[i] = '🕵️ SPY');
+
+      roles = shuffleArray(roles);
+      currentIndex = 0;
+
+      roleDisplay.textContent = `✅ Готово! ${totalPlayers} игроков, ${spyCount} шпион(ов). Нажмите сюда →`;
+      roleDisplay.classList.remove('hidden');
+      roleDisplay.style.opacity = '1';
+    }
+
+    function showNextRole() {
+      if (roles.length === 0) {
+        roleDisplay.textContent = '❌ Сначала сгенерируйте игру!';
+        return;
+      }
+
+      if (currentIndex >= roles.length) {
+        roleDisplay.textContent = '🏁 Все роли показаны. Приятной игры!';
+        roleDisplay.style.opacity = '1';
+        return;
+      }
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      const playerName = `Player ${currentIndex + 1}`;
+      roleDisplay.textContent = `${playerName}:\n${roles[currentIndex]}`;
+      roleDisplay.style.opacity = '1';
+
+      timeoutId = setTimeout(() => {
+        roleDisplay.classList.add('hidden');
+        setTimeout(() => {
+          if (roleDisplay.classList.contains('hidden')) {
+            currentIndex++;
+            if (currentIndex < roles.length) {
+              roleDisplay.textContent = `— Роль игрока ${currentIndex + 1} —`;
+            } else {
+              roleDisplay.textContent = '🏁 Все роли распределены!';
+            }
+            roleDisplay.classList.remove('hidden');
+          }
+        }, 400);
+      }, 2000);
+    }
+
+    function resetGame() {
+      if (timeoutId) clearTimeout(timeoutId);
+      roles = [];
+      currentIndex = 0;
+      roleDisplay.textContent = '— Нажмите «Сгенерировать игру», затем кликайте сюда —';
+      roleDisplay.classList.remove('hidden');
+      roleDisplay.style.opacity = '1';
+    }
+
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+  </script>
+</body>
+</html>
